@@ -6,8 +6,14 @@ from openpyxl import Workbook, load_workbook
 
 app = Flask(__name__)
 
+# =========================
+# ⚠️ LINE Token
+# =========================
 CHANNEL_ACCESS_TOKEN = "Mn03tLk/2u8uW4mUHoS+9Z7xfkvqDpeAhfgPCP4wN/BcaEiNEvkU5WYvBaeZrSYMFiVetB6aOHp0zLpQ46RJ0GSnJ+15+XUrqrZsD15/iHm/MilMrvlbcrpeEm2pMC9/DlWvU3D1FD02E7ea9qYMwQdB04t89/1O/w1cDnyilFU="
 
+# =========================
+# Excel 檔案
+# =========================
 EXCEL_FILE = "data.xlsx"
 
 
@@ -15,7 +21,6 @@ EXCEL_FILE = "data.xlsx"
 # 初始化 Excel
 # =========================
 def init_excel():
-
     if not os.path.exists(EXCEL_FILE):
         wb = Workbook()
         ws = wb.active
@@ -44,6 +49,8 @@ def callback():
     try:
         data = request.get_json(silent=True)
 
+        print("🔥 RAW:", data)
+
         if not data:
             return "OK"
 
@@ -67,17 +74,27 @@ def callback():
 
 
 # =========================
-# 處理訊息
+# 訊息處理
 # =========================
 def handle_message(text):
 
+    print("📩 RAW:", repr(text))
+
+    # 🔥 全形轉半形
     text = str(text).replace("！", "!").strip()
 
+    print("🧹 CLEAN:", repr(text))
+
+    # =========================
+    # 相簿模式
+    # =========================
     if text.startswith("!"):
 
         raw = text[1:].strip()
 
         result = parse_album(raw)
+
+        print("📊 RESULT:", result)
 
         if result:
 
@@ -85,20 +102,24 @@ def handle_message(text):
             save_to_excel(result)
 
             return (
-                "📌已存入系統\n"
+                "📌解析成功\n"
                 f"日期: {result['date']}\n"
                 f"工地: {result['site']}\n"
                 f"進度: {result['progress']}\n"
                 f"人員: {result['person']}"
             )
 
-        return "❌格式錯誤"
+        return (
+            "❌格式錯誤\n\n"
+            "正確格式：\n"
+            "!115.04.15大莊園：外牆拆架完成（銘）"
+        )
 
     return "你說的是：" + text
 
 
 # =========================
-# 解析
+# 解析器（已修正 trim）
 # =========================
 def parse_album(text):
 
@@ -108,10 +129,10 @@ def parse_album(text):
 
         left, right = text.split("：", 1)
 
-        date = left[:10]
-        site = left[10:].strip()
+        date = left[:10].strip()     # ✔ 修正
+        site = left[10:].strip()     # ✔ 修正
 
-        if "（" not in right:
+        if "（" not in right or "）" not in right:
             return None
 
         progress = right.split("（")[0].strip()
@@ -124,12 +145,13 @@ def parse_album(text):
             "person": person
         }
 
-    except:
+    except Exception as e:
+        print("❌ parse error:", str(e))
         return None
 
 
 # =========================
-# 存 Excel
+# Excel 寫入（穩定版）
 # =========================
 def save_to_excel(data):
 
@@ -141,22 +163,22 @@ def save_to_excel(data):
         ws = wb.active
 
         ws.append([
-            data["date"],
-            data["site"],
-            data["progress"],
-            data["person"]
+            data["date"].strip(),
+            data["site"].strip(),
+            data["progress"].strip(),
+            data["person"].strip()
         ])
 
         wb.save(EXCEL_FILE)
 
-        print("💾 已寫入 Excel")
+        print("💾 已寫入 Excel成功：", data)
 
     except Exception as e:
         print("❌ Excel error:", str(e))
 
 
 # =========================
-# reply
+# LINE reply（穩定版）
 # =========================
 def reply_message(reply_token, text):
 
@@ -170,17 +192,27 @@ def reply_message(reply_token, text):
 
         payload = {
             "replyToken": reply_token,
-            "messages": [{"type": "text", "text": text}]
+            "messages": [
+                {"type": "text", "text": text}
+            ]
         }
 
-        requests.post(url, headers=headers, json=payload, timeout=5)
+        res = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=5
+        )
+
+        print("📤 status:", res.status_code)
+        print("📤 response:", res.text)
 
     except Exception as e:
         print("❌ reply error:", str(e))
 
 
 # =========================
-# 啟動時初始化
+# 啟動初始化
 # =========================
 init_excel()
 
