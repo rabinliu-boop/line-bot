@@ -1,9 +1,11 @@
 from flask import Flask, request
 import requests
+import json
 
 app = Flask(__name__)
 
-CHANNEL_ACCESS_TOKEN = "你的token請貼這裡"
+# ⚠️ 換成你的 LINE Channel Access Token
+CHANNEL_ACCESS_TOKEN = "請貼你的token"
 
 @app.route("/")
 def home():
@@ -28,18 +30,26 @@ def reply_message(reply_token, text):
     url = "https://api.line.me/v2/bot/message/reply"
 
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": "Bearer " + CHANNEL_ACCESS_TOKEN.strip()
     }
 
     payload = {
         "replyToken": reply_token,
         "messages": [
-            {"type": "text", "text": text}
+            {
+                "type": "text",
+                "text": text
+            }
         ]
     }
 
-    res = requests.post(url, headers=headers, json=payload)
+    res = requests.post(
+        url,
+        headers=headers,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    )
+
     print("reply status:", res.status_code)
     print("reply response:", res.text)
 
