@@ -4,7 +4,7 @@ import json
 
 app = Flask(__name__)
 
-# ⚠️ LINE token
+# ⚠️ 填你的 LINE token
 CHANNEL_ACCESS_TOKEN = "請貼你的token"
 
 # =========================
@@ -44,24 +44,21 @@ def callback():
 
 
 # =========================
-# 訊息處理（重點 debug）
+# 訊息處理（重點）
 # =========================
 def handle_message(text):
 
-    # 🔥 完整 debug log
-    print("📩 RAW TEXT:", repr(text))
+    print("📩 RAW:", repr(text))
 
-    # 清理（避免 invisible char）
-    text = str(text).strip()
+    # 🔥 統一全形 → 半形
+    text = str(text).replace("！", "!").strip()
 
-    print("🧹 CLEAN TEXT:", repr(text))
+    print("🧹 CLEAN:", repr(text))
 
     # =========================
     # 相簿模式
     # =========================
     if text.startswith("!"):
-
-        print("📦 ENTER ! MODE")
 
         raw = text[1:].strip()
 
@@ -69,7 +66,7 @@ def handle_message(text):
 
         result = parse_album(raw)
 
-        print("📊 PARSE RESULT:", result)
+        print("📊 RESULT:", result)
 
         if result:
             return (
@@ -79,12 +76,12 @@ def handle_message(text):
                 f"進度: {result['progress']}\n"
                 f"人員: {result['person']}"
             )
-        else:
-            return (
-                "❌解析失敗\n\n"
-                "請確認格式：\n"
-                "!115.04.15大莊園：室內隔間完成（銘）"
-            )
+
+        return (
+            "❌格式錯誤\n\n"
+            "正確格式：\n"
+            "!115.04.15大莊園：室內隔間完成（銘）"
+        )
 
     # =========================
     # 一般訊息
@@ -134,7 +131,7 @@ def parse_album(text):
 
 
 # =========================
-# reply function
+# reply
 # =========================
 def reply_message(reply_token, text):
 
@@ -163,15 +160,15 @@ def reply_message(reply_token, text):
             timeout=5
         )
 
-        print("📤 reply status:", res.status_code)
-        print("📤 reply response:", res.text)
+        print("📤 status:", res.status_code)
+        print("📤 response:", res.text)
 
     except Exception as e:
         print("❌ reply error:", str(e))
 
 
 # =========================
-# start
+# run
 # =========================
 if __name__ == "__main__":
     app.run()
