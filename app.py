@@ -5,11 +5,11 @@ import re
 
 app = Flask(__name__)
 
-# ⚠️ 換成你的 LINE Channel Access Token
+# ⚠️ 請換成你的 LINE token
 CHANNEL_ACCESS_TOKEN = "Mn03tLk/2u8uW4mUHoS+9Z7xfkvqDpeAhfgPCP4wN/BcaEiNEvkU5WYvBaeZrSYMFiVetB6aOHp0zLpQ46RJ0GSnJ+15+XUrqrZsD15/iHm/MilMrvlbcrpeEm2pMC9/DlWvU3D1FD02E7ea9qYMwQdB04t89/1O/w1cDnyilFU="
 
 # =========================
-# 首頁測試
+# 首頁
 # =========================
 @app.route("/")
 def home():
@@ -20,43 +20,67 @@ def home():
 # =========================
 @app.route("/callback", methods=["POST"])
 def callback():
-    data = request.json
-    print("🔥 收到LINE請求")
-    print(data)
+    try:
+        data = request.json
+        print("🔥 收到LINE請求")
+        print(data)
 
-    for event in data.get("events", []):
-        if event["type"] == "message":
+        for event in data.get("events", []):
+            if event["type"] == "message":
 
-            text = event["message"]["text"]
-            reply_token = event["replyToken"]
+                text = event["message"]["text"]
+                reply_token = event["replyToken"]
 
-            # 判斷是否為相簿指令
-            if text.startswith("!相簿"):
-                raw = text.replace("!相簿", "").strip()
-                result = parse_album(raw)
+                reply = handle_message(text)
 
-                if result:
-                    reply = (
-                        "📌解析成功\n"
-                        f"日期: {result['date']}\n"
-                        f"工地: {result['site']}\n"
-                        f"進度: {result['progress']}\n"
-                        f"人員: {result['person']}"
-                    )
-                else:
-                    reply = "❌格式錯誤\n請用：\n!相簿 115.04.15大莊園：室內隔間完成（銘）"
+                reply_message(reply_token, reply)
 
-            else:
-                reply = "你說的是：" + text
+        return "OK"
 
-            reply_message(reply_token, reply)
+    except Exception as e:
+        print("❌ callback error:", str(e))
+        return "OK"
 
-    return "OK"
+# =========================
+# 訊息處理中心
+# =========================
+def handle_message(text):
+
+    # 👉 相簿模式
+    if text.startswith("!"):
+
+        raw = text.replace("!", "").strip()
+
+        # 空值防呆
+        if not raw:
+            return "❌請輸入內容\n範例：\n!115.04.15大莊園：室內隔間完成（銘）"
+
+        result = parse_album(raw)
+
+        if result:
+            return (
+                "📌解析成功\n"
+                f"日期: {result['date']}\n"
+                f"工地: {result['site']}\n"
+                f"進度: {result['progress']}\n"
+                f"人員: {result['person']}"
+            )
+        else:
+            return (
+                "❌格式錯誤\n\n"
+                "正確格式：\n"
+                "!115.04.15大莊園：室內隔間完成（銘）"
+            )
+
+    # 👉 一般訊息
+    return "你說的是：" + text
+
 
 # =========================
 # 解析相簿格式
 # =========================
 def parse_album(text):
+
     pattern = r"(\d{3}\.\d{2}\.\d{2})([^：]+)：(.+?)（(.+?)）"
     match = re.match(pattern, text)
 
@@ -70,10 +94,12 @@ def parse_album(text):
         "person": match.group(4)
     }
 
+
 # =========================
-# 回覆 LINE
+# LINE reply
 # =========================
 def reply_message(reply_token, text):
+
     url = "https://api.line.me/v2/bot/message/reply"
 
     headers = {
@@ -91,14 +117,20 @@ def reply_message(reply_token, text):
         ]
     }
 
-    res = requests.post(
-        url,
-        headers=headers,
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    )
+    try:
+        res = requests.post(
+            url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            timeout=5
+        )
 
-    print("reply status:", res.status_code)
-    print("reply response:", res.text)
+        print("reply status:", res.status_code)
+        print("reply response:", res.text)
+
+    except Exception as e:
+        print("❌ reply error:", str(e))
+
 
 # =========================
 # 啟動
