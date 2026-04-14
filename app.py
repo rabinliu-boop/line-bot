@@ -31,8 +31,8 @@ def callback():
             reply_token = event["replyToken"]
 
             # 判斷是否為相簿指令
-            if text.startswith("!"):
-                raw = text.replace("!", "").strip()
+            if text.startswith("!相簿"):
+                raw = text.replace("!相簿", "").strip()
                 result = parse_album(raw)
 
                 if result:
@@ -44,7 +44,7 @@ def callback():
                         f"人員: {result['person']}"
                     )
                 else:
-                    reply = "❌格式錯誤\n請用：\n! 115.04.15大莊園：室內隔間完成（銘）"
+                    reply = "❌格式錯誤\n請用：\n!相簿 115.04.15大莊園：室內隔間完成（銘）"
 
             else:
                 reply = "你說的是：" + text
