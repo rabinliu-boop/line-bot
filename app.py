@@ -5,7 +5,7 @@ import json
 app = Flask(__name__)
 
 # ⚠️ 換成你的 LINE Channel Access Token
-CHANNEL_ACCESS_TOKEN = "請貼你的token"
+CHANNEL_ACCESS_TOKEN = "Mn03tLk/2u8uW4mUHoS+9Z7xfkvqDpeAhfgPCP4wN/BcaEiNEvkU5WYvBaeZrSYMFiVetB6aOHp0zLpQ46RJ0GSnJ+15+XUrqrZsD15/iHm/MilMrvlbcrpeEm2pMC9/DlWvU3D1FD02E7ea9qYMwQdB04t89/1O/w1cDnyilFU="
 
 @app.route("/")
 def home():
