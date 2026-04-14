@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-CHANNEL_ACCESS_TOKEN = "你的token"
+CHANNEL_ACCESS_TOKEN = "你的token請貼這裡"
 
 @app.route("/")
 def home():
@@ -15,7 +15,7 @@ def callback():
     print("🔥 收到LINE請求")
     print(data)
 
-    for event in data["events"]:
+    for event in data.get("events", []):
         if event["type"] == "message":
             text = event["message"]["text"]
             reply_token = event["replyToken"]
@@ -26,16 +26,22 @@ def callback():
 
 def reply_message(reply_token, text):
     url = "https://api.line.me/v2/bot/message/reply"
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
     }
+
     payload = {
-        "replyToken": replyToken,
-        "messages": [{"type": "text", "text": text}]
+        "replyToken": reply_token,
+        "messages": [
+            {"type": "text", "text": text}
+        ]
     }
 
-    requests.post(url, headers=headers, json=payload)
+    res = requests.post(url, headers=headers, json=payload)
+    print("reply status:", res.status_code)
+    print("reply response:", res.text)
 
 if __name__ == "__main__":
     app.run()
