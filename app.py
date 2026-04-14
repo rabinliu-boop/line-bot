@@ -1,15 +1,14 @@
 from flask import Flask, request
 import requests
 import json
-import re
 
 app = Flask(__name__)
 
-# ⚠️ 請換成你的 LINE token
+# ⚠️ 請填你的 LINE token
 CHANNEL_ACCESS_TOKEN = "Mn03tLk/2u8uW4mUHoS+9Z7xfkvqDpeAhfgPCP4wN/BcaEiNEvkU5WYvBaeZrSYMFiVetB6aOHp0zLpQ46RJ0GSnJ+15+XUrqrZsD15/iHm/MilMrvlbcrpeEm2pMC9/DlWvU3D1FD02E7ea9qYMwQdB04t89/1O/w1cDnyilFU="
 
 # =========================
-# 首頁
+# 首頁測試
 # =========================
 @app.route("/")
 def home():
@@ -42,18 +41,13 @@ def callback():
         return "OK"
 
 # =========================
-# 訊息處理中心
+# 訊息處理
 # =========================
 def handle_message(text):
 
     # 👉 相簿模式
     if text.startswith("!"):
-
-        raw = text.replace("!", "").strip()
-
-        # 空值防呆
-        if not raw:
-            return "❌請輸入內容\n範例：\n!115.04.15大莊園：室內隔間完成（銘）"
+        raw = text[1:].strip()  # 去掉 !
 
         result = parse_album(raw)
 
@@ -68,7 +62,7 @@ def handle_message(text):
         else:
             return (
                 "❌格式錯誤\n\n"
-                "正確格式：\n"
+                "請用以下格式：\n"
                 "!115.04.15大莊園：室內隔間完成（銘）"
             )
 
@@ -77,22 +71,44 @@ def handle_message(text):
 
 
 # =========================
-# 解析相簿格式
+# 超穩定解析（重點）
 # =========================
 def parse_album(text):
 
-    pattern = r"(\d{3}\.\d{2}\.\d{2})([^：]+)：(.+?)（(.+?)）"
-    match = re.match(pattern, text)
+    try:
+        # 必須有 ：
+        if "：" not in text:
+            return None
 
-    if not match:
+        left, right = text.split("：", 1)
+
+        left = left.strip()
+        right = right.strip()
+
+        # 日期固定 10 碼（115.04.15）
+        date = left[:10]
+        site = left[10:].strip()
+
+        # 人員（最後括號）
+        if "（" in right and "）" in right:
+            progress = right.split("（")[0].strip()
+            person = right.split("（")[1].replace("）", "").strip()
+        else:
+            return None
+
+        # 基本檢查
+        if not date or not site or not progress or not person:
+            return None
+
+        return {
+            "date": date,
+            "site": site,
+            "progress": progress,
+            "person": person
+        }
+
+    except:
         return None
-
-    return {
-        "date": match.group(1),
-        "site": match.group(2),
-        "progress": match.group(3),
-        "person": match.group(4)
-    }
 
 
 # =========================
