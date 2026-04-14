@@ -4,11 +4,11 @@ import json
 
 app = Flask(__name__)
 
-# ⚠️ 請填你的 LINE token
-CHANNEL_ACCESS_TOKEN = "Mn03tLk/2u8uW4mUHoS+9Z7xfkvqDpeAhfgPCP4wN/BcaEiNEvkU5WYvBaeZrSYMFiVetB6aOHp0zLpQ46RJ0GSnJ+15+XUrqrZsD15/iHm/MilMrvlbcrpeEm2pMC9/DlWvU3D1FD02E7ea9qYMwQdB04t89/1O/w1cDnyilFU="
+# ⚠️ LINE token
+CHANNEL_ACCESS_TOKEN = "請貼你的token"
 
 # =========================
-# 首頁測試
+# 首頁
 # =========================
 @app.route("/")
 def home():
@@ -19,12 +19,14 @@ def home():
 # =========================
 @app.route("/callback", methods=["POST"])
 def callback():
+
     try:
         data = request.json
         print("🔥 收到LINE請求")
-        print(data)
+        print(json.dumps(data, ensure_ascii=False, indent=2))
 
         for event in data.get("events", []):
+
             if event["type"] == "message":
 
                 text = event["message"]["text"]
@@ -40,16 +42,34 @@ def callback():
         print("❌ callback error:", str(e))
         return "OK"
 
+
 # =========================
-# 訊息處理
+# 訊息處理（重點 debug）
 # =========================
 def handle_message(text):
 
-    # 👉 相簿模式
+    # 🔥 完整 debug log
+    print("📩 RAW TEXT:", repr(text))
+
+    # 清理（避免 invisible char）
+    text = str(text).strip()
+
+    print("🧹 CLEAN TEXT:", repr(text))
+
+    # =========================
+    # 相簿模式
+    # =========================
     if text.startswith("!"):
-        raw = text[1:].strip()  # 去掉 !
+
+        print("📦 ENTER ! MODE")
+
+        raw = text[1:].strip()
+
+        print("📦 RAW AFTER !:", repr(raw))
 
         result = parse_album(raw)
+
+        print("📊 PARSE RESULT:", result)
 
         if result:
             return (
@@ -61,22 +81,23 @@ def handle_message(text):
             )
         else:
             return (
-                "❌格式錯誤\n\n"
-                "請用以下格式：\n"
+                "❌解析失敗\n\n"
+                "請確認格式：\n"
                 "!115.04.15大莊園：室內隔間完成（銘）"
             )
 
-    # 👉 一般訊息
+    # =========================
+    # 一般訊息
+    # =========================
     return "你說的是：" + text
 
 
 # =========================
-# 超穩定解析（重點）
+# 解析器（穩定版）
 # =========================
 def parse_album(text):
 
     try:
-        # 必須有 ：
         if "：" not in text:
             return None
 
@@ -85,18 +106,18 @@ def parse_album(text):
         left = left.strip()
         right = right.strip()
 
-        # 日期固定 10 碼（115.04.15）
+        if len(left) < 10:
+            return None
+
         date = left[:10]
         site = left[10:].strip()
 
-        # 人員（最後括號）
-        if "（" in right and "）" in right:
-            progress = right.split("（")[0].strip()
-            person = right.split("（")[1].replace("）", "").strip()
-        else:
+        if "（" not in right or "）" not in right:
             return None
 
-        # 基本檢查
+        progress = right.split("（")[0].strip()
+        person = right.split("（")[1].replace("）", "").strip()
+
         if not date or not site or not progress or not person:
             return None
 
@@ -107,12 +128,13 @@ def parse_album(text):
             "person": person
         }
 
-    except:
+    except Exception as e:
+        print("❌ parse error:", str(e))
         return None
 
 
 # =========================
-# LINE reply
+# reply function
 # =========================
 def reply_message(reply_token, text):
 
@@ -141,15 +163,15 @@ def reply_message(reply_token, text):
             timeout=5
         )
 
-        print("reply status:", res.status_code)
-        print("reply response:", res.text)
+        print("📤 reply status:", res.status_code)
+        print("📤 reply response:", res.text)
 
     except Exception as e:
         print("❌ reply error:", str(e))
 
 
 # =========================
-# 啟動
+# start
 # =========================
 if __name__ == "__main__":
     app.run()
